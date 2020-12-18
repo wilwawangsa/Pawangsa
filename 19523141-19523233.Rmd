@@ -1,0 +1,141 @@
+---
+title: "28-Tugas Besar Kuliah FSD, Kelas I"
+author: "Ligar Wisnu Geogiza (19523141) - Wilwatikta Tripawangsa (19523233)"
+date: "12/18/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+<h1>Case of judicial-expenditures-across-all-50-states</h1>
+
+Dari kaggle.com kami mengambil sample data mengenai Pengeluaran pemerintah dan pekerjaan untuk perlindungan polisi, fungsi peradilan dan hukum, dan koreksi di Amerika Serikat pada tahun 2016.
+Khususnya pengeluaran keadilan per kapita/PC (fiskal 2016) dan pekerjaan keadilan yang setara penuh waktu per 10.000 penduduk (Maret 2016) pemerintah negara bagian dan lokal berdasarkan aktivitas dan negara bagian.
+```{r}
+library(factoextra)
+judedata = read.csv("jeee16t08.csv")
+head(judedata)
+```
+kita lihat summary dan struktur datanya.
+```{r}
+summary(judedata)
+```
+```{r}
+str(judedata)
+```
+untuk melihat total keadilan sistem perkapita kita sampling dengan histogram
+```{r}
+hist(judedata$Total.justice.system.PC)
+```
+
+##Pre-processing
+```{r}
+library(caTools) 
+  
+set.seed(99) 
+split = sample.split(judedata$Population.2016, SplitRatio = 1.25) 
+  
+training_set = subset(judedata, split == TRUE) 
+test_set = subset(judedata, split == FALSE)
+```
+
+```{r}
+training_set
+```
+```{r}
+test_set
+```
+
+##Cross-validation
+
+```{r}
+library(tidyverse)
+library(caret) 
+```
+
+```{r}
+set.seed(99) 
+```
+ 
+```{r}
+sample <- createDataPartition(judedata$Population.2016, p = 0.75, list = FALSE) 
+```
+
+```{r}
+training_judedata <- judedata[sample, ] 
+```
+
+```{r}
+testing_judedata <- judedata[-sample, ] 
+```
+
+```{r}
+model <- lm(Population.2016 ~ Total.justice.system.PC, data = training_judedata) 
+```
+
+```{r}
+predictions <- predict(model, testing_judedata)
+```
+
+```{r} 
+data.frame( R2 = R2(predictions, testing_judedata $ Population.2016), 
+			RMSE = RMSE(predictions, testing_judedata $ Population.2016), 
+			MAE = MAE(predictions, testing_judedata $ Population.2016)) 
+```
+
+<h2>Pemodelan</h2>
+Data ini memiliki atribut sebanyak 11 multivariate berkarakteristik integer, real, dan string(pada state).
+
+<p> Model pembelajaran mesin yang digunakan adalah DBSCAN
+Density-Based Spatial Clustering of Application with Noise (DBSCAN) merupakan sebuah metode clustering yang membangun area berdasarkan kepadatan yang terkoneksi (density- connected). Setiap objek dari sebuah radius area (cluster) yang mengandung setidaknya sejumlah minimum data.</p>
+
+<b> Evaluasi, akurasi dan apakah masuk akal ?</b>
+Penggunaan algoritma DBSCAN untuk pengolahan data clustering, regresi dan klasifikasi. Dengan kerapatan titik-titiknya.
+
+<b> Implementasi DBSCAN</b>
+```{r}
+df <-judedata[, 9:10 ]
+df
+```
+
+```{r}
+plot(df, pch=16)
+```
+
+```{r}
+set.seed(99)
+km <- kmeans(df, 5, nstart = 25)
+fviz_cluster(km, df, frame = FALSE, geom = "point")
+```
+
+```{r}
+library("fpc")
+set.seed(99)
+db <- dbscan(df, eps = 0.15, MinPts = 5)
+plot(db, df, main = "DBSCAN", frame = FALSE)
+```
+
+```{r}
+library("factoextra")
+fviz_cluster(db, df, stand = FALSE, frame = FALSE, geom = "point")
+```
+
+```{r}
+print(db)
+```
+
+```{r}
+db$cluster
+```
+
+```{r}
+library(dbscan)
+```
+
+```{r}
+kNNdistplot(df, k = 5)
+abline(h = 0.15, lty = 2)
+```
+<h3> Kesimpulan </h3>
+Kluster plot memperlihatkan bahwa lembah pada kurva adalah ketika y >= 15. Hasil tersebut yang dinamakan sebagai nilai eps.
+Alternatif lain untuk menentukan minPts adalah dengan menghitung mean dari nilai k-distance dari semua data point.
